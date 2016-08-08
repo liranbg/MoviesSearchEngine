@@ -34,12 +34,12 @@ then in step_2() function it calculates the IDF and finished with a structur tha
 
 ## Part 3: Evaluating, Search, Return
 
-This part contains 2 options, search with CosineSimilarity and BM25
+This part contains 2 options, search with **Cosine Similarity** and **BM25**
 
 The user provide a query to search and the system will support this query in both CosineSimilarity and BM25 functions
 Each movie in the result file will hold its meta data such as: serialNum, url, name_eng, length, year, imdb_score, download, RANK
  
- While Rank is the evaluation for the CosineSimilarity or BM25
+While Rank is the evaluation for the **Cosine Similarity** or **BM25**
 
 ## Part 4: Tagging
 
@@ -59,11 +59,13 @@ we will search for a speicific genre - 'SCI-FI' while assuming:
 3. 1500 were relevant
 
 Therefore:
-
+```
 X = Relevant documents retrieved =>  1500
 Y = Relevant documents not retrieved => 8508 - 1500 = 7008
 Z = Irrelevant documents retrieved => 5000 - 1500 = 3500
-
+```
 Equation ==>
+```
 Recall = (X / (X + Y)) * 100 => 1500/8508 * 100 = 17.63%
 Precision = (X / (X + Z)) * 100 => 1500/5000 * 100 = 30%
+```
