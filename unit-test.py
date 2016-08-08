@@ -7,7 +7,7 @@ class CreateFrequency(unittest.TestCase):
     def test_step1_2(self):
         createFrequency.ENGLISH_TEST = True
         createFrequency.FILES_DIRECTORY = "files_eng"
-        self.cosine = createFrequency.CosineSimilarity()
+        self.cosine = createFrequency.DBIndexer()
 
         expected_step_1_words_dict = {
             'a': {
@@ -158,7 +158,7 @@ class CreateFrequency(unittest.TestCase):
 
         createFrequency.FILES_DIRECTORY = "files_eng_2"
         # https://turi.com/learn/userguide/feature-engineering/bm25.html
-        self.cosine = createFrequency.CosineSimilarity()
+        self.cosine = createFrequency.DBIndexer()
         self.cosine.step_1()
         self.cosine.step_2()
         results_bm25 = self.cosine.bm25("a query example", 10)

@@ -94,7 +94,7 @@ class Movie(object):
         return [self.get_movie(movie_id) for movie_id in movie_ids]
 
 
-class CosineSimilarity(object):
+class DBIndexer(object):
 
     def __init__(self):
         self.words_dict = dict()
@@ -166,17 +166,17 @@ class CosineSimilarity(object):
         return tokens
 
     def _parse_file(self, file_name, content):
-        split_document_list = CosineSimilarity.split_document(content)
+        split_document_list = DBIndexer.split_document(content)
         self.movies_ids.append(file_name)
         self.avdl += len(split_document_list)
         for token in split_document_list:
             if token not in self.words_dict:
                 self.words_dict[token] = {
                     'times': 1,
-                    file_name: CosineSimilarity.get_term_frequency(token, split_document_list)
+                    file_name: DBIndexer.get_term_frequency(token, split_document_list)
                 }
             elif file_name not in self.words_dict[token]:
-                self.words_dict[token][file_name] = CosineSimilarity.get_term_frequency(token, split_document_list)
+                self.words_dict[token][file_name] = DBIndexer.get_term_frequency(token, split_document_list)
                 self.words_dict[token]['times'] += 1
             else:
                 continue
@@ -203,12 +203,12 @@ class CosineSimilarity(object):
     @staticmethod
     def _count_token_in_movie(token, movie_id):
         codecs_open = codecs.open(os.path.join(FILES_DIRECTORY, movie_id), encoding='utf-8')
-        split_document_list = CosineSimilarity.split_document(codecs_open.read())
+        split_document_list = DBIndexer.split_document(codecs_open.read())
         return split_document_list.count(token), len(split_document_list)
 
     def bm25(self, query, k):
         print(u"Step #3: Calculating BM25: '%s'" % query)
-        split_doc = CosineSimilarity.split_document(query)
+        split_doc = DBIndexer.split_document(query)
         ttl_files = len(self.files)
         avg_dl = self.avdl
         results = list()
@@ -217,19 +217,19 @@ class CosineSimilarity(object):
             tmp_score = list()
             for q in split_doc:
                 n = len(self._get_movies_id_from_words_dict(q))
-                f, dl = CosineSimilarity._count_token_in_movie(q, movie_id)
-                score = CosineSimilarity.score_bm25(n, ttl_files, f, dl, avg_dl)
+                f, dl = DBIndexer._count_token_in_movie(q, movie_id)
+                score = DBIndexer.score_bm25(n, ttl_files, f, dl, avg_dl)
                 tmp_score.append(score)
             results.append((movie_id, sum(tmp_score)))
 
         return sorted(results, key=itemgetter(1), reverse=True)[:k]
 
     def query_similarity_vector(self, query, k):
-        query_split = CosineSimilarity.split_document(query)
+        query_split = DBIndexer.split_document(query)
         query_dict = dict()
         print("Step #3: Calculating TF * IDF")
         for q in query_split:
-            tf = CosineSimilarity.get_term_frequency(q, query_split)
+            tf = DBIndexer.get_term_frequency(q, query_split)
             idf = self.words_dict[q]['idf'] if q in self.words_dict else 0
             movies_id_list = self._get_movies_id_from_words_dict(q)
             if not movies_id_list:
@@ -346,8 +346,8 @@ class CosineSimilarity(object):
 
 
 if __name__ == '__main__':
-    z = Movie()
-    cosine = CosineSimilarity()
+    mv = Movie()
+    cosine = DBIndexer()
     cosine.step_1()
     cosine.step_2()
     while True:
@@ -359,14 +359,14 @@ if __name__ == '__main__':
         qsv_data = OrderedDict()
         for movie_id, score in qsv:
             qsv_data[movie_id] = OrderedDict([('RANK', score)])
-        z.print_movie(qsv_movies, qsv_data)
+        mv.print_movie(qsv_movies, qsv_data)
 
         bm25 = cosine.bm25(query.decode('utf-8'), 10)
         bm25_movies = [movie_id for movie_id, score in bm25]
         bm25_data = OrderedDict()
         for movie_id, score in bm25:
             bm25_data[movie_id] = OrderedDict([('RANK', score)])
-        z.print_movie(bm25_movies, bm25_data)
+        mv.print_movie(bm25_movies, bm25_data)
 
     print("Exporting data")
     cosine.export_data()
