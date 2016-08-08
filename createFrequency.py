@@ -8,11 +8,12 @@ import codecs
 import math
 from operator import itemgetter
 from utils import UnicodeWriter
+from runTagger import run_meni
 
 k1 = 1.5
 b = 0.75
 ENGLISH_TEST = False
-HEBREW_TEST = False
+HEBREW_TEST = True
 FILES_DIRECTORY = "files_eng_2" if ENGLISH_TEST else "files_test" if HEBREW_TEST else "files"
 FREQUENCY_HEADERS = ["Token", "Times", "In Files", "IDF"]
 # TODO: rebuild class upon previous results
@@ -33,7 +34,8 @@ INDEX_FILE = 'index.csv'
 def get_stop_words():
     stopwords = codecs.open(STOPWORDS_FILE, 'r+', encoding='utf-8').readlines()
     stopwords = [stripped.strip() for stripped in stopwords]
-    return stopwords
+    tagged = run_meni(' '.join(stopwords))
+    return tagged
 
 STOPWORDS = get_stop_words()
 
@@ -169,14 +171,15 @@ class DBIndexer(object):
         split_document_list = DBIndexer.split_document(content)
         self.movies_ids.append(file_name)
         self.avdl += len(split_document_list)
-        for token in split_document_list:
+        tagged_doc_list = run_meni(u' '.join(split_document_list))
+        for token in tagged_doc_list:
             if token not in self.words_dict:
                 self.words_dict[token] = {
                     'times': 1,
-                    file_name: DBIndexer.get_term_frequency(token, split_document_list)
+                    file_name: DBIndexer.get_term_frequency(token, tagged_doc_list)
                 }
             elif file_name not in self.words_dict[token]:
-                self.words_dict[token][file_name] = DBIndexer.get_term_frequency(token, split_document_list)
+                self.words_dict[token][file_name] = DBIndexer.get_term_frequency(token, tagged_doc_list)
                 self.words_dict[token]['times'] += 1
             else:
                 continue
@@ -193,7 +196,7 @@ class DBIndexer(object):
             # print(u"Exporting word (%d/%d): [%s]" % (word_idx, len(self.words_dict), token))
             occurs_list = [(key, self.words_dict[token][key]) for key in self._get_movies_id_from_words_dict(token)]
             frequency_writer.writerow([
-                token,
+                token.decode('utf-8'),
                 self.words_dict[token]['times'],
                 ';'.join(['{}-{}'.format(movie_id, occurs) for movie_id, occurs in occurs_list]),
                 self.words_dict[token]['idf']
@@ -204,7 +207,8 @@ class DBIndexer(object):
     def _count_token_in_movie(token, movie_id):
         codecs_open = codecs.open(os.path.join(FILES_DIRECTORY, movie_id), encoding='utf-8')
         split_document_list = DBIndexer.split_document(codecs_open.read())
-        return split_document_list.count(token), len(split_document_list)
+        tagged_doc_list = run_meni(' '.join(split_document_list))
+        return tagged_doc_list.count(run_meni(token)[0]), len(tagged_doc_list)
 
     def bm25(self, query, k):
         print(u"Step #3: Calculating BM25: '%s'" % query)
@@ -226,10 +230,11 @@ class DBIndexer(object):
 
     def query_similarity_vector(self, query, k):
         query_split = DBIndexer.split_document(query)
+        query_tag = run_meni(query_split)
         query_dict = dict()
         print("Step #3: Calculating TF * IDF")
-        for q in query_split:
-            tf = DBIndexer.get_term_frequency(q, query_split)
+        for q in query_tag:
+            tf = DBIndexer.get_term_frequency(q, query_tag)
             idf = self.words_dict[q]['idf'] if q in self.words_dict else 0
             movies_id_list = self._get_movies_id_from_words_dict(q)
             if not movies_id_list:
@@ -309,7 +314,7 @@ class DBIndexer(object):
         print("Step #1: Term Frequency - Parsing %d documents" % (len(self.files)))
         for fn_i, fn in enumerate(self.files, start=1):
             _, filename = os.path.split(fn)
-            # print("\tDocument: %s (%d/%d)" % (fn, fn_i, len(self.files)))
+            print("\tDocument: %s (%d/%d)" % (fn, fn_i, len(self.files)))
             codecs_open = codecs.open(fn, encoding='utf-8')
             self._parse_file(filename, codecs_open.read())
             codecs_open.close()
