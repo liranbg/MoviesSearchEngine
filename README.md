@@ -43,7 +43,10 @@ While Rank is the evaluation for the **Cosine Similarity** or **BM25**
 
 ## Part 4: Tagging
 
-TODO
+Support words tagging by send both query and document content to the RunTagger server ran by JAVA
+
+The tagger returns the word basic root (לאכול > א.כ.ל) thus improving the search engine
+
 
 ## Part 5: Conclusions
 
