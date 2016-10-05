@@ -1,4 +1,4 @@
-# Movies Search Engine
+# Movie Search Engine
 
 This project was made for Information Retrieval course.
 
